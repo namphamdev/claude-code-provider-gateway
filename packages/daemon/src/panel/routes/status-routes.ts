@@ -2,9 +2,9 @@ import type { Hono } from "hono";
 import { PROVIDER_LABELS } from "../../config/schema.js";
 import { addLogListener, getLogBuffer } from "../../observability/log.js";
 import { getDaemonStatus } from "../../runtime/process.js";
-import { getStats, getUptimeMs } from "../../runtime/stats.js";
-import type { GatewayStatusResponse, StatsResponse } from "../contracts.js";
+import { getStats, getUptimeMs } from "../../runtime/provider-stats.js";
 import type { PanelRuntime } from "../runtime.js";
+import type { GatewayStatusResponse, StatsResponse } from "../types.js";
 
 export function registerStatusRoutes(app: Hono, runtime: PanelRuntime): void {
   app.get("/api/status", (c) => {

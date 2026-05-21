@@ -1,19 +1,19 @@
 import type { Hono } from "hono";
 import type { BuiltInProviderId, ProviderId } from "../../config/schema.js";
 import { CLI_FLAGS, PROVIDER_LABELS } from "../../config/schema.js";
-import type {
-  InstallShellSetupResponse,
-  LaunchCommandsResponse,
-  QuickLaunchResponse,
-} from "../contracts.js";
-import { prepareLaunch } from "../launch-prepare.js";
 import type { PanelRuntime } from "../runtime.js";
 import {
   getShellSetup,
   getSnippetForShell,
   installSnippet,
+  prepareLaunch,
   type ShellName,
-} from "../shell-setup.js";
+} from "../services/index.js";
+import type {
+  InstallShellSetupResponse,
+  LaunchCommandsResponse,
+  QuickLaunchResponse,
+} from "../types.js";
 
 export function registerShellRoutes(app: Hono, runtime: PanelRuntime): void {
   app.get("/api/launch-commands", (c) => {
