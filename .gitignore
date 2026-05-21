@@ -6,3 +6,4 @@ coverage/
 .cache/
 .claude
 EXAMPLE/
+graphify-out/
