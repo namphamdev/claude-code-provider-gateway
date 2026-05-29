@@ -4,9 +4,9 @@
 
 ## System Overview
 
-Claude Code Provider Gateway (CCPG) is a **local-first, desktop-hosted gateway** that interposes an Anthropic Messages API-compatible proxy between Claude Code and any of 40+ LLM providers. The system is organized as a monorepo with three packages:
+Claude Code Provider Gateway (CCPG) is a **local-first, desktop-hosted gateway** that interposes an Anthropic Messages API-compatible proxy between Claude Code and any of 40+ LLM providers, while also exposing an OpenAI-compatible local `/v1` gateway for external tools. The system is organized as a monorepo with three packages:
 
-- **Daemon** — A TypeScript/Node.js backend that runs two Hono HTTP servers on `127.0.0.1`: an Anthropic-compatible proxy API and a web panel API.
+- **Daemon** — A TypeScript/Node.js backend that runs two Hono HTTP servers on `127.0.0.1`: an Anthropic/OpenAI-compatible proxy API and a web panel API.
 - **Panel** — A React 19 SPA (Ant Design, Zustand, React Router) that serves as the configuration UI, live session viewer, and provider management dashboard.
 - **Desktop** — A Rust/Tauri 2 shell that packages the daemon as a sidecar process and wraps the panel in a native window, delivering a zero-command-line desktop experience.
 
@@ -17,10 +17,10 @@ The architectural style is **layered**: the daemon is split into configuration, 
 ```
 ┌────────────────┐     ┌───────────────────────────────────┐     ┌─────────────────┐
 │  Claude Code   │     │         Gateway Daemon            │     │  OpenRouter     │
-│  (CLI / IDE)   │────▶│  ┌─────────────────────────────┐  │────▶│  DeepSeek       │
+│  OpenAI tools  │────▶│  ┌─────────────────────────────┐  │────▶│  DeepSeek       │
 │                │◀────│  │ Hono HTTP Server (proxy)    │  │◀────│  OpenAI         │
-│  Anthropic     │ SSE │  │ :49250                      │  │     │  Ollama         │
-│  Messages API  │     │  └─────────────────────────────┘  │     │  ...            │
+│ Anthropic API  │     │  │ :49250                      │  │     │  Ollama         │
+│ OpenAI /v1 API │     │  └─────────────────────────────┘  │     │  ...            │
 └────────────────┘     │  ┌─────────────────────────────┐  │     └─────────────────┘
                        │  │ Hono HTTP Server (panel)    │  │
    Tauri Webview ─────▶│  │ :6767                       │  │
@@ -50,8 +50,8 @@ claude-code-provider-gateway/
 │   │   │   ├── runtime.ts                # Proxy runtime + config loader
 │   │   │   ├── model-router.ts           # Model → provider routing
 │   │   │   ├── core/                     # Proxy-local errors and request optimizations
-│   │   │   ├── middleware/auth.ts         # x-api-key authentication (proxy)
-│   │   │   ├── routes/                   # Anthropic + status route handlers
+│   │   │   ├── middleware/auth.ts         # Anthropic + OpenAI gateway authentication
+│   │   │   ├── routes/                   # Anthropic, OpenAI, and status route handlers
 │   │   │   ├── services/                 # Public facade + grouped proxy services
 │   │   │   │   ├── index.ts              # Public MessageService/ModelService API
 │   │   │   │   ├── messages/             # MessageService routing orchestration
@@ -102,7 +102,7 @@ claude-code-provider-gateway/
 │   │   │       ├── types.ts              # SessionRecord, SessionModelStat, etc.
 │   │   │       ├── stats.ts              # Per-model and per-provider stat aggregation
 │   │   │       └── store.ts              # JSONL archive + current-session checkpoint
-│   │   ├── core/                         # Anthropic types, token counting, format conversion
+│   │   ├── core/                         # Anthropic/OpenAI types, token counting, format conversion
 │   │   └── panel/                        # Panel HTTP server
 │   │       ├── app.ts                    # Hono app composition (thin coordinator)
 │   │       ├── types.ts                  # Shared TypeScript types for all panel API shapes
@@ -112,6 +112,7 @@ claude-code-provider-gateway/
 │   │       └── routes/                   # One file per route group
 │   │           ├── config-routes.ts      # GET/PUT /api/config
 │   │           ├── provider-routes.ts    # Provider list, test, models, routing options
+│   │           ├── gateway-routes.ts     # OpenAI Gateway endpoint/key/examples/model list
 │   │           ├── session-routes.ts     # Session read, clear, launch lifecycle
 │   │           ├── shell-routes.ts       # Shell setup, snippets, launch commands
 │   │           ├── static-routes.ts      # React SPA static file serving
@@ -153,9 +154,9 @@ Built with [Hono](https://hono.dev), a lightweight web framework.
 
 **app.ts** — creates the Hono app with:
 - Middleware: config reload on every request (`runtime.reloadConfig()`), then auth validation
-- Route registration: `registerStatusRoutes()` + `registerAnthropicRoutes()`
+- Route registration: `registerStatusRoutes()` + `registerAnthropicRoutes()` + `registerOpenAIRoutes()`
 
-**routes/anthropic-routes.ts** — handles `POST /v1/messages`:
+**routes/anthropic-routes.ts** — handles `POST /v1/messages`, `POST /v1/messages/count_tokens`, and the Claude Code branch of `GET /v1/models`:
 
 Three model catalog modes are controlled by `config.modelMode`:
 
@@ -184,7 +185,9 @@ chain rewind.
 When a chain is selected as the session primary model, background Claude tier
 requests are routed through the same chain.
 
-**middleware/auth.ts** — validates `x-api-key` header against `config.server.authToken`.
+**routes/openai-routes.ts** — handles `POST /v1/chat/completions`. It accepts OpenAI Chat Completions requests, maps public OpenAI Gateway model IDs such as `<provider>/<model>` back to the internal Anthropic-prefixed IDs when needed, converts the request into the internal Anthropic Messages shape, delegates to `MessageService`, and converts the result back to OpenAI streaming or non-streaming responses.
+
+**middleware/auth.ts** — validates the gateway token against `config.server.authToken`. Anthropic routes use Anthropic-compatible error payloads; OpenAI Gateway routes accept the same `Authorization: Bearer <token>` or `x-api-key` token and return OpenAI-compatible error payloads.
 
 **services/messages/message-service.ts** — routing orchestration only. Receives the request, resolves the target via `model-router.ts`, and delegates to one of three paths:
 - Local optimization (housekeeping requests answered without provider)
@@ -203,6 +206,12 @@ errors, or is canceled.
 It merges provider model discovery, manual/disabled model settings, gateway
 provider prefixes, and synthetic Model Chain entries according to `modelMode`
 and `activeModelFallbackSlug`.
+
+`GET /v1/models` has two public shapes. Requests with `anthropic-version` keep
+the Claude Code catalog behavior above. Requests without that header are treated
+as OpenAI-compatible clients: CCPG lists all enabled provider models regardless
+of the current Claude Code `modelMode`, returns `{ object: "list", data: [...] }`,
+and exposes short model IDs by removing the public `anthropic/` prefix.
 
 **services/native/native-claude-routing.ts** — decides whether a request should bypass the active provider and fall through to native Anthropic passthrough. Applied when the requested model is a hardcoded Claude tier name and no primary model has been established yet for this session.
 
@@ -465,6 +474,7 @@ Hono-based REST API for the web panel. The panel module is composed of:
 | `status-routes.ts` | `GET /api/status`, `POST /api/control/shutdown`, `GET /api/stats`, `GET /api/logs` (SSE) |
 | `config-routes.ts` | `GET /api/config`, `PUT /api/config` |
 | `provider-routes.ts` | `GET /api/providers`, `POST /api/providers/:id/test`, custom provider create/test/delete, custom logo serving, `GET /api/models/:providerId`, `GET /api/routing/options` |
+| `gateway-routes.ts` | `GET /api/openai-gateway`, `GET /api/openai-gateway/models` |
 | `session-routes.ts` | `GET /api/sessions`, `DELETE /api/sessions`, `POST /api/launch/end`, `POST /api/launch/heartbeat`, `POST /api/launch/attach` |
 | `shell-routes.ts` | `GET /api/quick-launch`, `GET /api/launch-commands`, `GET /api/launch-command`, `GET /api/shell-setup`, `GET /api/shell-setup/snippet/:shell`, `POST /api/shell-setup/install`, `POST /api/launch/prepare` |
 | `oauth/` | OpenAI Account PKCE routes, GitHub Copilot device-flow routes, KiloCode device-flow routes, and Cline browser authorization routes. Shared helpers in `oauth/shared.ts`. |
@@ -478,8 +488,9 @@ React 19 SPA built with Vite 6 + Ant Design 5 + Zustand 5.
 
 - **Dashboard** — live session view with provider cards, SSE log feed, quick-launch buttons
 - **Providers** — toggle providers, edit API keys, OAuth login, test connections, add extra/manual models, create/delete custom OpenAI/Anthropic-compatible providers
-- **Model Chain** — create, edit, reorder, enable, and launch ordered fallback chains built from active provider models
 - **Routing** — tier-based model routing UI
+- **Model Chain** — create, edit, reorder, enable, and launch ordered fallback chains built from active provider models
+- **OpenAI Gateway** — copy the local OpenAI-compatible base URL, API key, model IDs, and curl examples
 - **History** — session archive with per-request drill-down and per-session JSON export
 - **Server Logs** — live daemon log viewer with filtering and `.log` export
 - **Settings** — daemon configuration, outbound proxy, web tools, and token savers
@@ -654,11 +665,23 @@ Claude Code
 Claude Code receives Anthropic SSE stream
 ```
 
+OpenAI-compatible clients use the same proxy port with a different public
+surface:
+
+```text
+OpenAI client
+  -> POST /v1/chat/completions
+  -> requireOpenAIAuth
+  -> OpenAI request conversion + model alias expansion
+  -> MessageService / ProviderRegistry / Model Chain support
+  -> OpenAI JSON or data-stream response
+```
+
 ## Security Model
 
 | Threat | Mitigation |
 |---|---|
-| Unauthorized proxy access | `x-api-key` header validation on every request |
+| Unauthorized proxy access | Gateway token validation on every proxy request. Claude Code uses `x-api-key`; OpenAI-compatible clients may use `Authorization: Bearer <token>` or `x-api-key`. |
 | Network exposure | Both servers bind to `127.0.0.1` only |
 | Secrets at rest | AES-256-GCM encryption, random IV per write |
 | OAuth token theft | Tokens encrypted in store, auto-refreshed |

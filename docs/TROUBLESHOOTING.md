@@ -85,6 +85,40 @@ Local providers need their upstream server running first:
 - LM Studio: `http://localhost:1234/v1`
 - llama.cpp: `http://localhost:8080/v1`
 
+## OpenAI Gateway Models Are Missing
+
+The **OpenAI Gateway** page and `GET /v1/models` show models for external
+OpenAI-compatible clients. If the list is empty or a provider is missing:
+
+1. Confirm the provider is enabled and authenticated in **Providers**.
+2. Run **Test Connection** on the provider so discovery or manual model setup is known-good.
+3. For OAuth providers such as Copilot or OpenAI Account, log out and sign in again if the account token expired.
+4. Verify the request uses the gateway API key:
+
+   ```bash
+   curl http://127.0.0.1:49250/v1/models \
+     -H "Authorization: Bearer sk_..."
+   ```
+
+OpenAI-compatible `/v1/models` intentionally lists all enabled provider models,
+even when Claude Code is running in `single` mode. Claude Code still receives
+its mode-aware model list because it sends the `anthropic-version` header.
+
+## OpenAI-Compatible Client Gets Unauthorized
+
+Use the API key shown on **OpenAI Gateway**. OpenAI-compatible clients should
+send either:
+
+```text
+Authorization: Bearer <gateway-token>
+```
+
+or:
+
+```text
+x-api-key: <gateway-token>
+```
+
 ## OpenAI OAuth Fails With A Region Error
 
 If OpenAI Account login fails with `unsupported_country_region_territory`,

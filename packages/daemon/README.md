@@ -2,7 +2,7 @@
 
 # @claude-code-provider-gateway/daemon
 
-The core daemon for Claude Code Provider Gateway. Starts a local Anthropic-compatible HTTP proxy and a management panel API — both bound to loopback only. Claude Code talks to the proxy; the desktop app talks to the panel. The daemon routes requests to your configured LLM provider, translating protocols when needed, and streams results back as Anthropic SSE.
+The core daemon for Claude Code Provider Gateway. Starts a local proxy with Anthropic-compatible and OpenAI-compatible API surfaces, plus a management panel API — all bound to loopback only. Claude Code talks to the Anthropic surface; OpenAI-compatible clients can use `/v1`; the desktop app talks to the panel. The daemon routes requests to your configured LLM provider, translating protocols when needed, and streams results back in the client protocol.
 
 **Part of the [Claude Code Provider Gateway](https://github.com/danielalves96/claude-code-provider-gateway) monorepo.**
 
@@ -30,7 +30,7 @@ startDaemon(config);
 
 | Server | Default port | Bound to | Purpose |
 |--------|-------------|----------|---------|
-| Proxy  | `49250`     | `127.0.0.1` | Anthropic-compatible Messages API — `POST /v1/messages`, `GET /v1/models`, `POST /v1/messages/count_tokens` |
+| Proxy  | `49250`     | `127.0.0.1` | Anthropic-compatible Messages API and OpenAI-compatible gateway — `POST /v1/messages`, `POST /v1/chat/completions`, `GET /v1/models`, `POST /v1/messages/count_tokens` |
 | Panel  | `49251`     | `127.0.0.1` | Management API consumed by the desktop UI — config, providers, sessions, OAuth, shell setup |
 
 Both servers are built with [Hono](https://hono.dev) and served via `@hono/node-server`.
@@ -61,17 +61,18 @@ Compiled binaries are written to `dist-bin/`.
 
 ## API Summary
 
-### Proxy endpoints (Anthropic-compatible)
+### Proxy endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/v1/messages` | Create a message (chat completion). Routes to the configured provider, enforces provider limits, translates protocols, and streams the response back as Anthropic SSE. Client disconnects abort upstream calls. |
-| `GET` | `/v1/models` | List available models aggregated from the active provider or all enabled providers. |
+| `POST` | `/v1/chat/completions` | OpenAI-compatible Chat Completions gateway. Accepts short model IDs such as `<provider>/<model>`, reuses the same provider routing pipeline, and returns OpenAI-compatible streaming or non-streaming responses. |
+| `GET` | `/v1/models` | Lists Anthropic-compatible models for Claude Code when `anthropic-version` is present. Without that header, returns an OpenAI-style model list across all enabled providers for external clients. |
 | `POST` | `/v1/messages/count_tokens` | Count input tokens for a Messages request using `js-tiktoken`. |
 | `GET` | `/health` | Health check — returns `{ "status": "ok" }`. |
 | `GET` | `/` | Status overview — returns active provider, proxy port, and status. |
 
-All `/v1/*` routes require the gateway auth token in the `x-api-key` header.
+All `/v1/*` routes require the gateway auth token. Anthropic-compatible Claude Code requests use `x-api-key`; OpenAI-compatible clients may use `Authorization: Bearer <token>` or `x-api-key`.
 
 ### Panel endpoints (management API)
 
@@ -82,6 +83,7 @@ All `/v1/*` routes require the gateway auth token in the `x-api-key` header.
 | `GET`/`POST` | `/api/config` | Read and write gateway configuration. |
 | `GET`/`POST` | `/api/providers` and `/api/custom-providers/*` | Provider management — test connections, fetch models, manage OAuth, create/test/delete custom providers, and serve uploaded custom logos. |
 | `GET`/`POST` | `/api/oauth/*` | OAuth flow endpoints for OpenAI Account, GitHub Copilot, Kilo Code, and Cline. |
+| `GET` | `/api/openai-gateway` and `/api/openai-gateway/models` | OpenAI Gateway screen data — local endpoint URLs, API key, curl examples, and active OpenAI-compatible model list. |
 | `POST` | `/api/shell/*` | Shell setup — install/uninstall the `ccpg` command wrapper. |
 
 All `/api/*` routes require panel access authentication.
@@ -94,7 +96,7 @@ export { startDaemon } from "./runtime/daemon.js";
 export { configureOutboundNetwork } from "./runtime/network.js";
 export { loadConfig } from "./config/index.js";
 
-// Proxy app factory — for embedding/testing the Anthropic-compatible proxy
+// Proxy app factory — for embedding/testing the Anthropic/OpenAI-compatible proxy
 export { createProxyApp } from "./proxy/app.js";
 
 // Panel app factory — for embedding/testing the management panel
@@ -139,6 +141,7 @@ Key test suites:
 | Test file | Covers |
 |-----------|--------|
 | `src/proxy/routes/anthropic-routes.test.ts` | Anthropic proxy endpoint behavior |
+| `src/proxy/routes/openai-routes.test.ts` | OpenAI-compatible auth, model listing, aliases, and chat completions behavior |
 | `src/proxy/services/messages/message-service.test.ts` | Message routing and translation |
 | `src/proxy/services/models/model-service.test.ts` | Model listing and aggregation |
 | `src/proxy/providers/*.test.ts` | Individual provider transports and auth flows |

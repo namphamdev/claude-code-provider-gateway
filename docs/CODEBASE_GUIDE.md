@@ -25,8 +25,8 @@ source for development, but end users should normally install a desktop build.
 
 | Package | Responsibility | Key entry points |
 |---|---|---|
-| `packages/daemon` | Runs the local Anthropic-compatible proxy, management API, config, sessions, provider registry, and observability. | `src/index.ts`, `src/runtime/daemon.ts`, `src/proxy/app.ts`, `src/panel/app.ts` |
-| `packages/panel` | Provides the management UI for providers, routing, Model Chains, history, logs, settings, and shell setup. | `src/main.tsx`, `src/app/App.tsx`, `src/app/routes.tsx` |
+| `packages/daemon` | Runs the local Anthropic/OpenAI-compatible proxy, management API, config, sessions, provider registry, and observability. | `src/index.ts`, `src/runtime/daemon.ts`, `src/proxy/app.ts`, `src/panel/app.ts` |
+| `packages/panel` | Provides the management UI for providers, routing, Model Chains, OpenAI Gateway, history, logs, settings, and shell setup. | `src/main.tsx`, `src/app/App.tsx`, `src/app/routes.tsx` |
 | `packages/desktop` | Packages the product as a Tauri desktop app, starts/stops the daemon sidecar, and exposes native commands. | `src-tauri/src/main.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/daemon_supervisor.rs` |
 
 ## Daemon Layout
@@ -36,13 +36,13 @@ source for development, but end users should normally install a desktop build.
 | Directory | Purpose |
 |---|---|
 | `config/` | Config schema, defaults, validation, path resolution, load/save, and encrypted secret splitting. |
-| `core/` | Anthropic protocol types, Anthropic-to-OpenAI conversion, token counting, SSE writer utilities, and private file helpers. |
+| `core/` | Anthropic/OpenAI protocol conversion helpers, token counting, SSE writer utilities, model aliases, and private file helpers. |
 | `observability/` | Central logger and in-memory/SSE log broadcasting. |
 | `panel/` | Hono app and routes for the management API consumed by the React panel. |
-| `proxy/` | Hono app and routes for the Anthropic-compatible proxy consumed by Claude Code. |
+| `proxy/` | Hono app and routes for the Anthropic-compatible Claude Code surface and OpenAI-compatible local gateway. |
 | `runtime/` | Daemon lifecycle, process markers, outbound proxy setup, stats, and session tracking. Session files are grouped under `runtime/sessions/`. |
 
-The proxy request path is:
+The Claude Code proxy request path is:
 
 ```text
 POST /v1/messages
@@ -54,6 +54,17 @@ POST /v1/messages
   -> provider transport
   -> Anthropic-compatible SSE stream
   -> session log capture
+```
+
+The OpenAI Gateway request path is:
+
+```text
+POST /v1/chat/completions
+  -> OpenAI auth middleware
+  -> OpenAI model alias expansion
+  -> OpenAI request conversion
+  -> MessageService
+  -> OpenAI response/stream conversion
 ```
 
 ## Panel Layout

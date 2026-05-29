@@ -145,6 +145,7 @@ Use existing tests as patterns:
 - `packages/daemon/src/proxy/services/models/model-service.test.ts`
 - `packages/daemon/src/proxy/services/messages/message-service.test.ts`
 - `packages/daemon/src/proxy/routes/anthropic-routes.test.ts`
+- `packages/daemon/src/proxy/routes/openai-routes.test.ts`
 
 For custom OAuth/device flows, add focused tests around pure parsing, expiry,
 refresh, and error classification code. Avoid tests that require live provider
@@ -174,6 +175,12 @@ protected resolveModel(requestedModel: string): string {
   return stripGatewayProviderPrefix(requestedModel, this.id)
 }
 ```
+
+The OpenAI Gateway presents the same models to OpenAI-compatible clients without
+the public `anthropic/` prefix. If a provider needs a nicer public shortcut or a
+backward-compatible alias, add it in
+`packages/daemon/src/core/openai/model-alias.ts` and cover it in
+`openai-routes.test.ts`.
 
 ### Wrapping the response stream
 

@@ -4,13 +4,14 @@
 
 ## Overview
 
-The **daemon** (`@claude-code-provider-gateway/daemon`) is the backend process of CCPG, implemented in TypeScript. It runs two local HTTP servers — a **proxy API** (port `49250`) that speaks the Anthropic Messages API, and a **panel API** (port `6767`) that serves the configuration web UI and REST endpoints. Both servers bind to `127.0.0.1` only.
+The **daemon** (`@claude-code-provider-gateway/daemon`) is the backend process of CCPG, implemented in TypeScript. It runs two local HTTP servers — a **proxy API** (port `49250`) that speaks both the Anthropic Messages API and an OpenAI-compatible `/v1` gateway, and a **panel API** (port `6767`) that serves the configuration web UI and REST endpoints. Both servers bind to `127.0.0.1` only.
 
-The daemon's primary job is to intercept Claude Code API requests, route them to a built-in or user-created LLM provider, translate between Anthropic and OpenAI API formats, and stream responses back as Anthropic SSE. It also provides session tracking, runtime stats, live logging, and a full configuration API consumed by the panel frontend.
+The daemon's primary job is to intercept Claude Code API requests and optional OpenAI-compatible local client requests, route them to a built-in or user-created LLM provider, translate between Anthropic and OpenAI API formats, and stream responses back in the caller's protocol. It also provides session tracking, runtime stats, live logging, and a full configuration API consumed by the panel frontend.
 
 ```text
-Claude Code ── Anthropic API ──► Proxy (:49250) ──► built-in + custom LLM providers
-User Browser ─────────────────► Panel (:6767)  ──► Config + Session + Stats
+Claude Code ── Anthropic API ─────► Proxy (:49250) ──► built-in + custom LLM providers
+OpenAI clients ── OpenAI /v1 API ─► Proxy (:49250) ──► same provider pipeline
+User Browser ────────────────────► Panel (:6767)  ──► Config + Session + Stats
 ```
 
 ## Entry Point
@@ -51,11 +52,15 @@ packages/daemon/src/
 │   │   ├── types.ts        # MessagesRequest/Response, Message, ContentBlock, Tool, Usage, ModelInfo
 │   │   ├── conversion.ts   # anthropicToOpenAI() — converts Anthropic Messages → OpenAI Chat Completions
 │   │   └── tokens.ts       # Token counting via js-tiktoken
+│   ├── openai/
+│   │   ├── conversion.ts   # OpenAI Chat Completions → Anthropic Messages conversion
+│   │   ├── model-alias.ts  # OpenAI Gateway short ID mapping
+│   │   └── stream.ts       # Anthropic result/stream → OpenAI response conversion
 │   ├── sse/
 │   │   └── writer.ts       # SSE event serialization: message_start, content_block_delta, etc.
 │   └── files/
 │       └── private-file.ts # writePrivateFile(), appendPrivateFile() with 0o600 permissions
-├── proxy/                  # Anthropic Messages API proxy server
+├── proxy/                  # Anthropic Messages API + OpenAI-compatible proxy server
 │   ├── app.ts              # createProxyApp() — Hono app factory
 │   ├── runtime.ts          # ProxyRuntime — holds Config + ProviderRegistry for the proxy
 │   ├── model-router.ts     # resolveModel() — decodes model name → provider target
@@ -63,9 +68,10 @@ packages/daemon/src/
 │   │   ├── errors.ts       # Anthropic error types + provider status code mapping
 │   │   └── optimizations.ts # Local optimizations for known housekeeping requests
 │   ├── middleware/
-│   │   └── auth.ts         # requireAnthropicAuth — Bearer/x-api-key validation
+│   │   └── auth.ts         # requireAnthropicAuth + requireOpenAIAuth validation
 │   ├── routes/
 │   │   ├── anthropic-routes.ts  # POST /v1/messages, /v1/messages/count_tokens, GET /v1/models
+│   │   ├── openai-routes.ts     # POST /v1/chat/completions
 │   │   └── status-routes.ts     # GET /v1/status (service health)
 │   ├── services/            # Public facade + grouped proxy services
 │   │   ├── index.ts             # Public MessageService/ModelService API
@@ -125,6 +131,7 @@ packages/daemon/src/
 │   │   ├── config-routes.ts    # GET/PUT /api/config
 │   │   ├── provider-routes.ts  # Provider list/test/models, custom providers, logo serving, routing options
 │   │   ├── session-routes.ts   # GET/DELETE /api/sessions, /api/launch/*
+│   │   ├── gateway-routes.ts   # OpenAI Gateway endpoint/key/examples/model list
 │   │   ├── shell-routes.ts     # Shell setup, launch commands, launch-prepare
 │   │   ├── status-routes.ts    # GET /api/status, /api/stats, /api/logs (SSE stream)
 │   │   ├── static-routes.ts    # Serves the panel React SPA from dist/
@@ -157,16 +164,17 @@ The daemon runs two independent Hono HTTP servers on separate ports:
 
 ### Proxy Server (port `49250`)
 
-Bound by `createProxyApp()` in `proxy/app.ts`. Implements the Anthropic Messages API:
+Bound by `createProxyApp()` in `proxy/app.ts`. Implements the Anthropic Messages API plus OpenAI-compatible Chat Completions:
 
 | Method | Path | Purpose |
 |--------|------|---------|
 | `POST` | `/v1/messages` | Main inference endpoint — receives Anthropic Messages requests, routes to target provider, and propagates client cancellation to upstream calls |
+| `POST` | `/v1/chat/completions` | OpenAI-compatible inference endpoint — receives Chat Completions requests, converts them to the internal Anthropic request shape, and converts results back to OpenAI streaming or JSON responses |
 | `POST` | `/v1/messages/count_tokens` | Token counting for the given messages+system+tool input |
-| `GET` | `/v1/models` | Model listing (mode-aware: single/all/chains) |
+| `GET` | `/v1/models` | Claude Code gets the mode-aware Anthropic catalog when `anthropic-version` is present. OpenAI-compatible callers get an OpenAI-style list across all enabled providers. |
 | `HEAD`/`OPTIONS` | `/v1/messages` | CORS preflight for health checks |
 
-All `/v1/*` routes require authentication via `requireAnthropicAuth` middleware, which validates `Authorization: Bearer <token>` or `x-api-key: <token>` headers against the server's `authToken`.
+All `/v1/*` routes require authentication. Anthropic-compatible routes use `requireAnthropicAuth`; OpenAI-compatible routes use `requireOpenAIAuth`, which accepts the same token but returns OpenAI-shaped error payloads.
 
 The proxy uses a `ProxyRuntime` instance that holds the current `Config` and a `ProviderRegistry`. Config is reloaded from disk on every request (hot-reload), so panel changes take effect without restarting.
 
@@ -365,7 +373,7 @@ type MessageServiceResult =
 
 **File:** `packages/daemon/src/proxy/services/models/model-service.ts`
 
-Handles `/v1/models` endpoint, returning the model list based on the configured `modelMode`.
+Handles `/v1/models` endpoint. Claude Code requests return the model list based on the configured `modelMode`; OpenAI-compatible requests return an OpenAI-style list across all enabled providers.
 
 ```ts
 export class ModelService {
@@ -383,7 +391,7 @@ export class ModelService {
 | `all` | Lists models from all enabled providers (parallel fetch) |
 | `chains` | Lists only model chain entries (user-defined model sequences) |
 
-All modes include model chain entries. Native Claude tiers (Default/Sonnet/Haiku) are intentionally excluded — Claude Code injects its own list.
+All Claude Code modes include model chain entries. Native Claude tiers (Default/Sonnet/Haiku) are intentionally excluded — Claude Code injects its own list. The OpenAI-compatible branch is selected when the request does not include `anthropic-version`; it ignores the Claude Code session's `single`/`chains` catalog mode, strips the public `anthropic/` prefix from IDs, and applies OpenAI Gateway aliases such as `commandcode/deepseek-v4-pro`.
 
 ### `shouldUseNativeClaudePassthrough()`
 

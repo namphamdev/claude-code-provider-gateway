@@ -27,6 +27,7 @@ packages/panel/src/
 │   ├── live-session/# Live monitoring of currently active sessions
 │   ├── logs/        # Real-time server log viewer via SSE
 │   ├── model-chain/ # Model fallback chain editor with drag-and-drop
+│   ├── openai-gateway/ # Local OpenAI-compatible endpoint, key, models, and examples
 │   ├── providers/   # Provider management: API keys, OAuth, model selection, favorites
 │   ├── routing/     # Tier-based routing rules (default/opus/sonnet/haiku)
 │   ├── settings/    # Server, web tools, proxy, and token saver configuration
@@ -383,6 +384,33 @@ type RoutingOption = {
 
 ---
 
+## Feature: OpenAI Gateway (`features/openai-gateway/`)
+
+Compact setup page for external OpenAI-compatible clients. It shows the local
+base URL, API key, endpoint paths, searchable active model picker, and copyable
+curl examples for `/v1/models` and `/v1/chat/completions`.
+
+### Components
+
+| Component | Purpose |
+|---|---|
+| `OpenAIGatewayPage` | Main page layout with endpoint fields, client setup details, active model picker, and examples. |
+| `ActiveModelsCard` | Searchable popover/command-palette style model picker that fetches `/api/openai-gateway/models` and copies selected model IDs. |
+| `CopyableField` | Compact read-only field with copy action for URLs, API keys, and commands. |
+| `ExampleCard` | Displays ready-to-run curl examples from the daemon. |
+
+### Services
+
+| Service | Endpoints Used |
+|---|---|
+| `openaiGatewayService` | `GET /api/openai-gateway`, `GET /api/openai-gateway/models` |
+
+The model picker displays the same public IDs returned by OpenAI-compatible
+`GET /v1/models`, including short IDs such as `<provider>/<model>` and any
+provider-specific aliases.
+
+---
+
 ## Feature: Providers (`features/providers/`)
 
 The most feature-rich module. Manages built-in and user-created LLM providers: API key configuration, OAuth login, custom OpenAI/Anthropic-compatible provider creation, runtime limits, model selection, connection testing, and favorites.
@@ -575,6 +603,7 @@ All types shared between panel and daemon are defined in `packages/daemon/src/pa
 | `OAuthInfo`, `OAuthStatusResponse` | Providers (OAuth flow) |
 | `SessionsResponse`, `SessionRecord` | Live Sessions, History |
 | `RoutingConfigResponse`, `RoutingOption`, `RoutingTier` | Routing, Model Chain |
+| `OpenAIGatewayResponse`, `OpenAIGatewayModelsResponse` | OpenAI Gateway |
 | `ShellSetupResponse`, `ShellInfo` | Dashboard (shell setup) |
 | `LaunchCommandsResponse`, `QuickLaunchResponse` | Dashboard (quick launch) |
 | `SettingsConfigResponse` | Settings |

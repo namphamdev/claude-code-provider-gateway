@@ -172,6 +172,12 @@ provider is ready.
 - Model Chain entries are exposed as synthetic IDs such as
   `anthropic/chain/my-chain`.
 
+The OpenAI Gateway uses the same provider catalog but presents it for OpenAI-compatible clients:
+
+- `GET /v1/models` without the `anthropic-version` header returns every enabled provider model, even when Claude Code is currently running in `single` mode.
+- Public model IDs are shortened by removing the Claude Code `anthropic/` prefix, so `anthropic/groq/llama-3.3-70b-versatile` appears as `groq/llama-3.3-70b-versatile`.
+- Provider-specific aliases can be added in `packages/daemon/src/core/openai/model-alias.ts`; for example, Command Code exposes `commandcode/deepseek-v4-pro` while routing internally to its full provider model ID.
+
 ## Model Chains
 
 Model Chains are user-defined custom models built from active provider models.

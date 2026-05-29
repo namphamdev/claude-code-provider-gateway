@@ -2,7 +2,7 @@
 
 # @claude-code-provider-gateway/panel
 
-The React-based web management UI for the Claude Code Provider Gateway. This single-page application provides a visual interface to configure LLM providers, monitor live sessions, browse request history, create model fallback chains, and manage gateway settings.
+The React-based web management UI for the Claude Code Provider Gateway. This single-page application provides a visual interface to configure LLM providers, monitor live sessions, browse request history, create model fallback chains, expose the local OpenAI-compatible gateway, and manage gateway settings.
 
 Part of the [Claude Code Provider Gateway](https://github.com/danielalves96/claude-code-provider-gateway) monorepo.
 
@@ -47,8 +47,9 @@ The panel exposes the following pages:
 | **Dashboard** | `/` | System status overview, enabled provider count, quick launch, and shell setup instructions. |
 | **Live Session** | `/live` | Real-time monitoring of the active Claude Code session, including request logs, model stats, and provider latency. |
 | **Providers** | `/providers` | Add custom OpenAI/Anthropic-compatible providers, configure, test, reorder, and favorite LLM providers. Supports search and status filtering. |
-| **Model Chain** | `/model-chain` | Create custom fallback chains from active provider models. Chains try models in priority order on failure. |
 | **Routing** | `/routing` | Map Claude model tiers (Opus, Sonnet, Haiku) to specific providers and models. |
+| **Model Chain** | `/model-chain` | Create custom fallback chains from active provider models. Chains try models in priority order on failure. |
+| **OpenAI Gateway** | `/openai-gateway` | Copy the local OpenAI-compatible base URL, API key, model IDs, and ready-to-run curl examples for external tools. |
 | **History** | `/history` | Browse completed session history with request details, token counts, latency, response previews, and per-session JSON export. |
 | **Server Logs** | `/logs` | View the daemon's structured log output with filtering, severity indicators, and `.log` export. |
 | **Settings** | `/settings` | Configure token savers (RTK compression, Caveman mode), outbound proxy, port settings, and other preferences. |
@@ -90,6 +91,7 @@ src/
 │   ├── live-session/# Active session monitor
 │   ├── logs/        # Server log viewer
 │   ├── model-chain/ # Custom fallback chain editor
+│   ├── openai-gateway/ # Local OpenAI-compatible endpoint, API key, model picker, and examples
 │   ├── providers/   # Provider CRUD, favorites, reordering
 │   ├── routing/     # Model tier routing config
 │   ├── settings/    # App configuration

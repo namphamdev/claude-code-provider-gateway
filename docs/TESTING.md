@@ -73,7 +73,9 @@ packages/daemon/src/
 │   │       └── api-client.test.ts
 │   └── routes/
 │       ├── anthropic-routes.ts
-│       └── anthropic-routes.test.ts
+│       ├── anthropic-routes.test.ts
+│       ├── openai-routes.ts
+│       └── openai-routes.test.ts
 └── runtime/
     ├── network.ts
     └── network.test.ts

@@ -31,7 +31,7 @@ Run Claude Code through OpenAI Account, GitHub Copilot, OpenRouter, DeepSeek, Gr
 
 ## What This Is
 
-Claude Code Provider Gateway, or CCPG, is a desktop app that starts a local Anthropic-compatible proxy on your machine. Claude Code talks to the gateway. The gateway routes each request to the provider and model you configured, translates protocols when needed, and streams the result back in Anthropic SSE format.
+Claude Code Provider Gateway, or CCPG, is a desktop app that starts a local gateway on your machine. Claude Code talks to the Anthropic-compatible proxy surface, while external tools can use the OpenAI-compatible `/v1` surface. The gateway routes each request to the provider and model you configured, translates protocols when needed, and streams the result back in the caller's expected format.
 
 ```text
 Claude Code -> CCPG desktop app -> local proxy -> your selected LLM provider
@@ -108,6 +108,7 @@ The next documentation step is a separate official docs site repository. Until t
 - **Desktop app, not a terminal science project** - Tauri app for macOS, Windows, and Linux with provider setup, connection tests, routing, logs, and history in one UI.
 - **Built-in and custom provider cards** - OAuth, API key, cloud, local, and coming-soon providers out of the box, plus user-created OpenAI-compatible and Anthropic-compatible providers with custom slugs and logos.
 - **Anthropic-compatible local proxy** - Claude Code sends Anthropic Messages API requests to `127.0.0.1`; CCPG translates and routes them.
+- **OpenAI-compatible local gateway** - Tools such as Cursor, Codex, OpenAI SDK clients, and other OpenAI-compatible apps can point at `http://127.0.0.1:49250/v1` and use `/v1/models` plus `/v1/chat/completions` with the same enabled providers.
 - **Full streaming** - provider responses stream back as Anthropic-style SSE events, with upstream cancellation when the client disconnects.
 - **Model routing** - map Claude tiers like `opus`, `sonnet`, and `haiku` to different providers and models.
 - **All-providers mode** - aggregate enabled providers into one model catalog and choose by model in Claude Code.
@@ -415,13 +416,14 @@ This table is about product focus, not a claim that other projects are bad. Term
 │                │────▶│  ┌─────────────────────────────┐  │────▶│  DeepSeek       │
 │                │◀────│  │ Proxy :49250                │  │◀────│  OpenAI Account │
 │  Anthropic     │ SSE │  │ /v1/messages -> translate   │  │     │  Copilot        │
-│  Messages API  │     │  │ /v1/models   -> aggregate   │  │     │  Ollama         │
+│  Messages API  │     │  │ /v1/chat/completions         │  │     │  Ollama         │
+│  or OpenAI API │     │  │ /v1/models   -> aggregate   │  │     │                 │
 └────────────────┘     │  └─────────────────────────────┘  │     │  ...            │
                        │  ┌─────────────────────────────┐  │     └─────────────────┘
                        │  │ Desktop Management UI       │  │
-                       │  │ Providers · Model Chain     │  │
-                       │  │ Routing · History · Logs     │  │
-                       │  │ Settings · Shell Setup       │  │
+                       │  │ Providers · Routing          │  │
+                       │  │ Model Chain · OpenAI Gateway │  │
+                       │  │ History · Logs · Shell Setup  │  │
                        │  └─────────────────────────────┘  │
                        └───────────────────────────────────┘
 ```

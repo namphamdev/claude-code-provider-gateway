@@ -12,7 +12,7 @@
 | Provider registry invalidation | Clearing the full provider cache after every config reload can recreate providers unnecessarily, especially now that runtime custom providers are created from config. | Compare provider config snapshots or hashes and invalidate specific providers. |
 | Session persistence | Session checkpoints and archive operations use local JSON files and can become expensive as request logs grow. | Add pagination/lazy loading for request logs, atomic archive writes, and clearer retention controls. |
 | Request history privacy | Prompt and response previews are useful for debugging but are stored locally in plain JSON session records. | Add a config toggle for prompt/response capture, retention policy controls, and consider encrypted session archives. |
-| Panel test coverage | The daemon has focused tests; the React panel currently relies mostly on manual validation. | Start with tests for shared hooks/services and critical flows like provider config, Model Chain setup, history, and shell setup. |
+| Panel test coverage | The daemon has focused tests; the React panel currently relies mostly on manual validation. | Start with tests for shared hooks/services and critical flows like provider config, OpenAI Gateway setup, Model Chain setup, history, and shell setup. |
 | Streaming edge cases | Provider SSE transforms are stateful and can be fragile with malformed or partial upstream events. Recent tests cover split useful content, cancellation, and mid-stream failures, but new providers can still regress this. | Keep adding transport-specific tests for partial chunks, malformed events, stalled streams, cancellation, and mid-stream provider failures. |
 | Active-stream shutdown | The daemon shutdown path closes connections immediately, which can interrupt in-flight responses. | Track active requests, stop accepting new ones, wait with a timeout, then force close remaining connections. |
 
@@ -21,12 +21,14 @@
 | Path | Risk | Review guidance |
 |---|---|---|
 | `packages/daemon/src/proxy/services/messages/message-service.ts` | Central orchestration for routing, token savers, Model Chains, native Claude passthrough, session logging, and provider dispatch. | Prefer small, well-tested changes. Add focused tests for every new branch in routing/fallback behavior. |
+| `packages/daemon/src/proxy/routes/openai-routes.ts` and `packages/daemon/src/core/openai/` | Public OpenAI Gateway compatibility layer, including auth error shape, request conversion, stream conversion, and short model aliases. | Test streaming and non-streaming responses, tools, model alias expansion, provider errors, and compatibility with `/v1/models`. |
 | `packages/daemon/src/proxy/services/streaming/provider-limiter.ts` | Enforces process-local provider concurrency and rate-window limits before upstream dispatch. | Verify slots release on stream completion, cancellation, and errors. Remember limits reset on daemon restart. |
 | `packages/daemon/src/proxy/providers/transports/openai.ts` | Converts Anthropic Messages into OpenAI Chat Completions and transforms streaming chunks back to Anthropic SSE. | Verify text, tool calls, finish reasons, empty chunks, and provider error mapping. |
 | `packages/daemon/src/proxy/providers/transports/anthropic.ts` | Streams native Anthropic-compatible provider responses. | Test partial lines and invalid upstream events when changing parser behavior. |
 | `packages/daemon/src/proxy/providers/commandcode/index.ts` | Small dual-transport wrapper around the Command Code Provider API. | Keep it aligned with `/provider/v1/models`; route Claude models to `/messages` and non-Claude models to `/chat/completions`. |
 | `packages/daemon/src/runtime/sessions/store.ts` | Reads, writes, archives, and deletes session JSON/JSONL files. | Prefer atomic writes, explicit logging on failure, and temp-directory tests for file operations. |
 | `packages/daemon/src/config/secrets/` | Encrypts and hydrates API keys, OAuth tokens, and gateway auth token. | Treat changes as security-sensitive. Preserve backward compatibility and test corrupted/missing store cases. |
+| `packages/daemon/src/panel/routes/gateway-routes.ts` | Exposes OpenAI Gateway endpoint data, API key, examples, and the live model picker list for the panel. | Keep examples aligned with public aliases and verify the route never leaks anything beyond the local gateway token already shown in the authenticated UI. |
 | `packages/daemon/src/panel/routes/provider-routes.ts` | Owns provider config updates plus custom provider create/test/delete and logo serving. | Verify deletion cleans config, encrypted API keys, routing refs, Model Chain refs, favorites, active provider fallback, and uploaded logos. |
 | `packages/desktop/src-tauri/src/daemon_supervisor.rs` | Owns sidecar lifecycle in the desktop app. | Add tests around pure policy code and manually validate start/stop/restart behavior on the target OS. |
 
@@ -37,6 +39,7 @@ or storage:
 
 - Does the proxy still bind to `127.0.0.1` only?
 - Does every proxy API request still require the gateway auth token?
+- Do OpenAI Gateway auth failures still use OpenAI-compatible error payloads?
 - Does any new panel API route need auth or origin handling updates?
 - Are provider API keys and OAuth tokens kept out of `config.json`, logs, and docs?
 - Do custom provider deletion paths remove encrypted API keys and uploaded logos?

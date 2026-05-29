@@ -119,7 +119,7 @@ It is a JSON file with the following top-level shape:
 
 | Key | Type | Description |
 |---|---|---|
-| `server` | object | Daemon network settings: proxy port, panel port, and internal auth token. |
+| `server` | object | Daemon network settings: proxy port, panel port, and internal auth token used by Claude Code, panel helpers, and OpenAI-compatible clients. |
 | `providers` | object | Per-provider configuration keyed by provider ID (e.g., `"openrouter"`, `"ollama"`, or a user-created custom slug). Contains built-in and custom provider entries. |
 | `routing` | object | Model routing rules for Claude Code's tier-based model selection (`default`, `opus`, `sonnet`, `haiku`). |
 | `thinking` | object | Extended thinking toggle, with per-tier overrides. |
@@ -194,7 +194,7 @@ However, for CCPG to actually route requests, at least one provider must be:
 - **enabled** (`providers.<id>.enabled = true`), and
 - **authenticated** — either with an API key or a completed OAuth flow (managed through the panel UI).
 
-The auth token (`server.authToken`) is auto-generated on first run as a random `sk_`-prefixed hex string. It must match between the daemon and any Claude Code session launched via `ccpg`. The shell setup flow handles this automatically.
+The auth token (`server.authToken`) is auto-generated on first run as a random `sk_`-prefixed hex string. It must match between the daemon and any Claude Code session launched via `ccpg`. It is also the API key shown on the **OpenAI Gateway** page for OpenAI-compatible clients using `Authorization: Bearer <token>`. The shell setup flow handles Claude Code automatically.
 
 ### Optional
 

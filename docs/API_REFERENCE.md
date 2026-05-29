@@ -6,7 +6,7 @@ CCPG runs two loopback-only Hono servers:
 
 | Server | Default URL | Primary caller |
 |---|---|---|
-| Proxy | `http://127.0.0.1:49250` | Claude Code |
+| Proxy | `http://127.0.0.1:49250` | Claude Code, OpenAI-compatible local clients |
 | Panel | `http://127.0.0.1:6767` | Tauri webview, Vite dev server, `ccpg` shell function |
 
 Both servers bind to `127.0.0.1`. The proxy requires the generated gateway token
@@ -15,17 +15,21 @@ from loopback.
 
 ## Proxy API
 
-The proxy implements the Anthropic-compatible surface Claude Code needs.
+The proxy implements two local compatibility surfaces on the same `/v1` base:
+Anthropic Messages for Claude Code, and OpenAI Chat Completions for external
+tools such as Cursor, Codex, and OpenAI SDK-compatible clients.
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | `GET` | `/` | No | Basic status JSON: `{ status, provider, proxy_port }`. |
 | `GET` | `/health` | No | Health check returning `{ "status": "ok" }`. |
-| `GET` | `/v1/models` | `x-api-key` | Returns Claude Code model discovery catalog. |
+| `GET` | `/v1/models` | `x-api-key` or Bearer | Returns Anthropic catalog when `anthropic-version` is present; otherwise returns OpenAI-style `{ object: "list", data }` across all enabled providers. |
 | `POST` | `/v1/messages` | `x-api-key` | Main Anthropic Messages streaming endpoint. |
 | `POST` | `/v1/messages/count_tokens` | `x-api-key` | Counts request tokens after enabled token saver transforms. |
+| `POST` | `/v1/chat/completions` | Bearer or `x-api-key` | OpenAI-compatible chat completions endpoint. Accepts short model IDs such as `commandcode/deepseek-v4-pro`, translates to the internal route, and returns OpenAI streaming or non-streaming responses. |
 | `HEAD` / `OPTIONS` | `/v1/messages` | `x-api-key` middleware applies to `/v1/*` | Preflight/probe support. |
 | `HEAD` / `OPTIONS` | `/v1/messages/count_tokens` | `x-api-key` middleware applies to `/v1/*` | Preflight/probe support. |
+| `HEAD` / `OPTIONS` | `/v1/chat/completions` | Bearer or `x-api-key` | Preflight/probe support for OpenAI-compatible clients. |
 
 Claude Code normally receives the required environment variables from the
 installed `ccpg` shell function:
@@ -53,6 +57,20 @@ provider transport and shared HTTP client. Upstream requests that are still
 opening return a controlled `499` JSON error, and in-flight response bodies are
 canceled. Provider rate/concurrency limit failures return Anthropic-style
 `rate_limit_error` responses.
+
+`POST /v1/chat/completions` flow:
+
+1. Validate the gateway token from `Authorization: Bearer <token>` or `x-api-key`.
+2. Convert OpenAI chat messages, tools, stop sequences, and tool choice into an internal Anthropic Messages request.
+3. Normalize OpenAI Gateway model aliases into internal gateway IDs. For example, `commandcode/deepseek-v4-pro` maps to `anthropic/commandcode/deepseek/deepseek-v4-pro`.
+4. Reuse `MessageService`, provider routing, token savers, Model Chains, limits, session logging, and cancellation handling.
+5. Convert the Anthropic SSE result back into OpenAI chat completion chunks when `stream: true`, or aggregate a non-streaming `chat.completion` response otherwise.
+
+For OpenAI-compatible clients, `GET /v1/models` intentionally ignores the current
+Claude Code `modelMode` and lists every enabled provider so external tools can
+pick any currently available local gateway model. Claude Code continues to send
+`anthropic-version` and therefore still receives the mode-aware catalog for
+`single`, `all`, and `chains`.
 
 ## Panel API
 
@@ -101,6 +119,18 @@ Completions-style endpoints (`{baseUrl}/chat/completions`) or
 `compatibility: "anthropic"` for Anthropic Messages-style endpoints
 (`{baseUrl}/messages`). Both variants use API-key auth and support manual
 models when discovery returns an empty catalog.
+
+### OpenAI Gateway
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `GET` | `/api/openai-gateway` | Origin/token policy | Returns local OpenAI-compatible endpoint details, API key, example model, and ready-to-copy curl examples for the panel page. |
+| `GET` | `/api/openai-gateway/models` | Origin/token policy | Calls the proxy's OpenAI-style `/v1/models` endpoint with the gateway token and returns compact `{ id, ownedBy, created }` model records for the model picker. |
+
+The panel route keeps browser code from calling the proxy directly, avoids CORS
+concerns, and centralizes token handling. The OpenAI Gateway page shows the
+Base URL (`http://127.0.0.1:<proxyPort>/v1`), API key, chat/models endpoints,
+available model picker, and curl examples.
 
 ### OAuth
 

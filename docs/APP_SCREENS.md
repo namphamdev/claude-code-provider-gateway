@@ -1,6 +1,6 @@
 # App Screens
 
-Use this page to preview the CCPG desktop app before installing it. These screens show the main management areas: dashboard, providers, model routing, model chains, live sessions, history, logs, and settings.
+Use this page to preview the CCPG desktop app before installing it. These screens show the main management areas: dashboard, providers, model routing, model chains, OpenAI Gateway, live sessions, history, logs, and settings.
 
 ## Dashboard
 
@@ -32,6 +32,14 @@ Model Chains let users create fallback chains from active provider models and ex
 
 <p align="center">
   <img src="../.github/assets/screen-pages/model-chain.png" alt="CCPG model chain screen" width="95%" />
+</p>
+
+## OpenAI Gateway
+
+OpenAI Gateway exposes CCPG's local `/v1` endpoint for external OpenAI-compatible clients. It shows the base URL, API key, `/v1/models` and `/v1/chat/completions` endpoints, a searchable active-model picker, and copyable curl examples.
+
+<p align="center">
+  <img src="../.github/assets/screen-pages/openai-gateway.png" alt="OpenAI Gateway Page" width="95%" />
 </p>
 
 ## Live Session

@@ -78,6 +78,17 @@ To see all available models across every enabled provider in Claude Code's model
 ccpg --all
 ```
 
+## Use OpenAI-Compatible Clients
+
+With the app running, open **OpenAI Gateway** in the sidebar to copy:
+
+- Base URL: `http://127.0.0.1:49250/v1`
+- API key: the generated `sk_...` gateway token
+- Model IDs from the active model picker, such as `<provider>/<model>`
+- Ready-to-run curl examples for `/v1/models` and `/v1/chat/completions`
+
+This path is for tools such as Cursor, Codex, OpenAI SDK clients, or any app that accepts an OpenAI-compatible base URL. It does not change the Claude Code flow: Claude Code still uses `ccpg` and the Anthropic-compatible `/v1/messages` endpoint.
+
 > [!WARNING]
 > If your `.claude/settings.json` or `.claude/settings.local.json` has an `env` block with `ANTHROPIC_AUTH_TOKEN` or `ANTHROPIC_BASE_URL`, **remove those entries before launching via `ccpg`**. Those env vars override the gateway endpoint and prevent CCPG from routing requests correctly.
 

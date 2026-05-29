@@ -19,19 +19,19 @@ cleaner, source-linked form.
 
 | Document | Purpose |
 |---|---|
-| [App Screens](APP_SCREENS.md) | Preview the desktop app UI before installing it. |
-| [Getting Started](GETTING-STARTED.md) | Install the desktop app, complete first-run setup, and launch Claude Code through `ccpg`. |
+| [App Screens](APP_SCREENS.md) | Preview the desktop app UI before installing it, including the OpenAI Gateway screen. |
+| [Getting Started](GETTING-STARTED.md) | Install the desktop app, complete first-run setup, launch Claude Code through `ccpg`, and connect OpenAI-compatible clients. |
 | [Configuration](CONFIGURATION.md) | Runtime config shape, environment variables, defaults, secrets, and storage locations. |
 | [Providers](PROVIDERS.md) | Provider catalog, auth modes, CLI flags, model discovery, Model Chains, and provider UX. |
 | [Panel Features](PANEL_FEATURES.md) | Frontend feature modules and how the management UI is organized. |
 | [Architecture](ARCHITECTURE.md) | System layers, request lifecycle, provider transports, session handling, storage, and security model. |
 | [Daemon Reference](DAEMON_REFERENCE.md) | Backend module reference for proxy, panel API, providers, sessions, observability, and build output. |
-| [API Reference](API_REFERENCE.md) | Local proxy and panel API endpoints used by Claude Code, the panel, and shell setup. |
+| [API Reference](API_REFERENCE.md) | Local proxy and panel API endpoints used by Claude Code, OpenAI-compatible clients, the panel, and shell setup. |
 | [Adding a Provider](ADDING_PROVIDER.md) | Implementation checklist and design patterns for built-in provider support. Runtime-compatible endpoints can usually be added from the Providers UI instead. |
 | [Codebase Guide](CODEBASE_GUIDE.md) | Repository structure, naming conventions, module patterns, and where to add code. |
 | [Development](DEVELOPMENT.md) | Source setup, local dev modes, package scripts, quality gates, builds, and release flow. |
 | [Testing](TESTING.md) | Test commands, test layout, coverage expectations, and CI integration. |
-| [Troubleshooting](TROUBLESHOOTING.md) | Practical fixes for routing, provider tests, OAuth, Model Chains, history, and build issues. |
+| [Troubleshooting](TROUBLESHOOTING.md) | Practical fixes for routing, provider tests, OpenAI Gateway setup, OAuth, Model Chains, history, and build issues. |
 | [Maintenance Notes](MAINTENANCE.md) | Known limitations, fragile areas, and maintenance priorities for future work. |
 
 ## Keeping Docs Accurate
