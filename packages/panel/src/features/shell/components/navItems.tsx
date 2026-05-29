@@ -1,5 +1,6 @@
 import {
   ApiOutlined,
+  CloudServerOutlined,
   DashboardOutlined,
   FileTextOutlined,
   ForkOutlined,
@@ -17,6 +18,7 @@ const BASE_ITEMS: NavItem[] = [
   { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
   { key: "/live", icon: <ThunderboltOutlined />, label: "Live Sessions" },
   { key: "/providers", icon: <ApiOutlined />, label: "Providers" },
+  { key: "/openai-gateway", icon: <CloudServerOutlined />, label: "OpenAI Gateway" },
   { key: "/model-chain", icon: <PartitionOutlined />, label: "Model Chain" },
   { key: "/routing", icon: <ForkOutlined />, label: "Routing" },
   { key: "/history", icon: <HistoryOutlined />, label: "History" },

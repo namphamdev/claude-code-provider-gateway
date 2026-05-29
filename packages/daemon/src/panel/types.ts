@@ -145,6 +145,28 @@ export type PanelConfigResponse = Config;
 export type SettingsConfigResponse = Pick<Config, "server" | "webTools" | "proxy" | "tokenSavers">;
 export type RoutingConfigResponse = Pick<Config, "routing" | "thinking">;
 
+export type OpenAIGatewayResponse = {
+  baseUrl: string;
+  chatCompletionsUrl: string;
+  modelsUrl: string;
+  apiKey: string;
+  exampleModel: string;
+  curl: string;
+  examples: Array<{
+    key: string;
+    title: string;
+    command: string;
+  }>;
+};
+
+export type OpenAIGatewayModelsResponse = {
+  models: Array<{
+    id: string;
+    ownedBy: string;
+    created: number;
+  }>;
+};
+
 export type SessionsResponse = {
   current: SessionRecord | null;
   currentSessions: SessionRecord[];

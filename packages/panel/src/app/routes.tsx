@@ -11,6 +11,9 @@ const ServerLogsPage = lazy(() => import("../features/logs/components/page/Serve
 const ModelChainPage = lazy(
   () => import("../features/model-chain/components/page/ModelChainPage.js"),
 );
+const OpenAIGatewayPage = lazy(
+  () => import("../features/openai-gateway/components/OpenAIGatewayPage.js"),
+);
 const ProvidersPage = lazy(() => import("../features/providers/components/page/ProvidersPage.js"));
 const RoutingPage = lazy(() => import("../features/routing/components/page/RoutingPage.js"));
 const SettingsPage = lazy(() => import("../features/settings/components/page/SettingsPage.js"));
@@ -22,6 +25,7 @@ export function AppRoutes() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/live" element={<LiveSessionPage />} />
         <Route path="/providers" element={<ProvidersPage />} />
+        <Route path="/openai-gateway" element={<OpenAIGatewayPage />} />
         <Route path="/model-chain" element={<ModelChainPage />} />
         <Route path="/model-fallback" element={<Navigate to="/model-chain" replace />} />
         <Route path="/routing" element={<RoutingPage />} />

@@ -26,3 +26,30 @@ export function requireAnthropicAuth(runtime: ProxyRuntime) {
     return next();
   };
 }
+
+export function requireOpenAIAuth(runtime: ProxyRuntime) {
+  return async (c: Context, next: Next) => {
+    const config = runtime.currentConfig();
+    if (!config.server.authToken) return next();
+
+    const auth = c.req.header("Authorization") ?? c.req.header("x-api-key") ?? "";
+    const token = auth.replace(/^Bearer\s+/i, "");
+    const sessionId = resolveSessionIdFromAuthToken(token);
+    if (sessionId) c.set(PROXY_SESSION_ID_KEY, sessionId);
+
+    if (token !== config.server.authToken && !sessionId) {
+      return c.json(
+        {
+          error: {
+            message: "Invalid API key",
+            type: "authentication_error",
+            code: "authentication_error",
+          },
+        },
+        401,
+      );
+    }
+
+    return next();
+  };
+}

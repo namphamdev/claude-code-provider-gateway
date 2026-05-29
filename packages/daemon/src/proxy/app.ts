@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Config } from "../config/schema.js";
 import { registerAnthropicRoutes } from "./routes/anthropic-routes.js";
+import { registerOpenAIRoutes } from "./routes/openai-routes.js";
 import { registerStatusRoutes } from "./routes/status-routes.js";
 import type { ConfigLoader } from "./runtime.js";
 import { ProxyRuntime } from "./runtime.js";
@@ -19,6 +20,7 @@ export function createProxyApp(initialConfig: Config, options: ProxyAppOptions =
   });
 
   registerStatusRoutes(app, runtime);
+  registerOpenAIRoutes(app, runtime);
   registerAnthropicRoutes(app, runtime);
 
   return app;

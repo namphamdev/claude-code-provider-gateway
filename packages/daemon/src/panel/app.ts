@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Config } from "../config/schema.js";
 import { requirePanelAccess } from "./middleware/auth.js";
 import { registerConfigRoutes } from "./routes/config-routes.js";
+import { registerGatewayRoutes } from "./routes/gateway-routes.js";
 import { registerOAuthRoutes } from "./routes/oauth/index.js";
 import { registerProviderRoutes } from "./routes/provider-routes.js";
 import { registerSessionRoutes } from "./routes/session-routes.js";
@@ -24,6 +25,7 @@ export function createPanelApp(initialConfig: Config, options: PanelAppOptions =
   registerSessionRoutes(app);
   registerShellRoutes(app, runtime);
   registerConfigRoutes(app, runtime);
+  registerGatewayRoutes(app, runtime);
   registerProviderRoutes(app, runtime);
   registerOAuthRoutes(app, runtime);
   registerStaticRoutes(app);

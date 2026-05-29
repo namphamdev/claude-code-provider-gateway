@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import type { CountTokensRequest, MessagesRequest } from "../../core/anthropic/index.js";
+import { toOpenAIModels } from "../../core/openai/stream.js";
 import { getSessionConfig } from "../../runtime/sessions/index.js";
 import { getProxySessionId, requireAnthropicAuth } from "../middleware/auth.js";
 import type { ProxyRuntime } from "../runtime.js";
@@ -9,7 +10,9 @@ export function registerAnthropicRoutes(app: Hono, runtime: ProxyRuntime): void 
   const messages = new MessageService(runtime);
   const models = new ModelService(runtime);
 
-  app.use("/v1/*", requireAnthropicAuth(runtime));
+  app.use("/v1/messages", requireAnthropicAuth(runtime));
+  app.use("/v1/messages/*", requireAnthropicAuth(runtime));
+  app.use("/v1/models", requireAnthropicAuth(runtime));
 
   app.on(["HEAD", "OPTIONS"], "/v1/messages", (_c) => new Response(null, { status: 204 }));
   app.on(
@@ -26,7 +29,17 @@ export function registerAnthropicRoutes(app: Hono, runtime: ProxyRuntime): void 
 
   app.get("/v1/models", async (c) => {
     const sessionConfig = getSessionConfig(getProxySessionId(c));
-    return c.json(await models.listModels(sessionConfig ?? runtime.currentConfig()));
+    const config = sessionConfig ?? runtime.currentConfig();
+    if (!c.req.header("anthropic-version")) {
+      const modelList = await models.listModels({
+        ...config,
+        modelMode: "all",
+        activeModelFallbackSlug: null,
+      });
+      return c.json(toOpenAIModels(modelList));
+    }
+    const modelList = await models.listModels(config);
+    return c.json(modelList);
   });
 
   app.post("/v1/messages", async (c) => {
