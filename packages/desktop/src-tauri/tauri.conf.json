@@ -32,7 +32,7 @@
     "homepage": "https://github.com/danielalves96/cc-provider-gtw",
     "copyright": "Copyright (c) 2026 Daniel Luiz Alves",
     "license": "MIT",
-    "licenseFile": "../../LICENSE",
+    "licenseFile": "../../../LICENSE",
     "category": "DeveloperTool",
     "shortDescription": "Local desktop gateway for Claude Code provider routing.",
     "longDescription": "Claude Code Provider Gateway is a local-first desktop app that routes Claude Code through OpenAI Account, GitHub Copilot, OpenRouter, local models, and other OpenAI or Anthropic-compatible providers.",
