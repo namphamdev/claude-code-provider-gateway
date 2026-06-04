@@ -1,6 +1,6 @@
 {
   "name": "@claude-code-provider-gateway/panel",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Claude Code Provider Gateway web panel",
   "author": "Daniel Luiz Alves <daniel.xcoders@gmail.com>",
   "homepage": "https://github.com/danielalves96/cc-provider-gtw#readme",
