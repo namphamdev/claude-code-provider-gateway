@@ -120,6 +120,11 @@ export const SUGGESTED_MODELS: Partial<Record<ProviderId, SuggestedModel[]>> = {
     { id: "accounts/fireworks/models/llama-v3p3-70b-instruct", name: "Llama 3.3 70B" },
     { id: "accounts/fireworks/models/qwen3-235b-a22b", name: "Qwen3 235B" },
   ],
+  tuning_engines: [
+    { id: "meta-llama/Llama-3.3-70B-Instruct", name: "Llama 3.3 70B Instruct" },
+    { id: "Qwen/Qwen2.5-Coder-32B-Instruct", name: "Qwen 2.5 Coder 32B Instruct" },
+    { id: "meta-llama/Meta-Llama-3.1-8B-Instruct", name: "Llama 3.1 8B Instruct" },
+  ],
   cerebras: [
     { id: "gpt-oss-120b", name: "GPT OSS 120B" },
     { id: "zai-glm-4.7", name: "ZAI GLM 4.7" },
