@@ -20,7 +20,7 @@ export function requirePanelAccess(runtime: PanelRuntime) {
     const isCrossSiteBrowserRequest = c.req.header("Sec-Fetch-Site") === "cross-site";
 
     if (origin && !isAllowedOrigin && !hasValidToken) {
-      return c.json({ error: "Forbidden origin", origin }, 403);
+      return c.json({ error: "Forbidden origin", origin, allowedOrigins: process.env.CCPG_PANEL_ORIGINS ?? "" }, 403);
     }
     if (!origin && isCrossSiteBrowserRequest && !hasValidToken) {
       return c.json({ error: "Forbidden origin", origin: c.req.header("Origin") ?? "" }, 403);

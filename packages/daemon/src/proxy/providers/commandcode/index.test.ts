@@ -31,7 +31,7 @@ test("CommandCodeProvider posts Anthropic messages to the Provider API", async (
     );
 
     assert.equal(result.error, undefined);
-    assert.equal(capturedUrl, "https://api.commandcode.ai/provider/v1/messages");
+    assert.equal(capturedUrl, "https://api.commandcode.ai/alpha/generate/messages");
     assert.equal(capturedHeaders!.get("Authorization"), "Bearer user_test");
     assert.equal(capturedHeaders!.get("Content-Type"), "application/json");
     assert.equal(capturedHeaders!.get("anthropic-version"), "2023-06-01");
@@ -70,7 +70,7 @@ test("CommandCodeProvider posts non-Claude models to the OpenAI-compatible endpo
     );
 
     assert.equal(result.error, undefined);
-    assert.equal(capturedUrl, "https://api.commandcode.ai/provider/v1/chat/completions");
+    assert.equal(capturedUrl, "https://api.commandcode.ai/alpha/generate/chat/completions");
     assert.equal(capturedHeaders!.get("Authorization"), "Bearer user_test");
     assert.equal(capturedHeaders!.get("Content-Type"), "application/json");
     assert.equal(capturedBody!.model, "deepseek/deepseek-v4-pro");
@@ -81,7 +81,7 @@ test("CommandCodeProvider posts non-Claude models to the OpenAI-compatible endpo
   }
 });
 
-test("CommandCodeProvider treats the legacy alpha generate URL as the Provider API base", async () => {
+test("CommandCodeProvider treats the legacy provider/v1 URL as the generate API base", async () => {
   const originalFetch = globalThis.fetch;
   let capturedUrl = "";
 
@@ -96,7 +96,7 @@ test("CommandCodeProvider treats the legacy alpha generate URL as the Provider A
   try {
     const provider = new CommandCodeProvider({
       ...commandCodeConfig(),
-      baseUrl: "https://api.commandcode.ai/alpha/generate",
+      baseUrl: "https://api.commandcode.ai/provider/v1",
     });
     const result = await provider.streamResponse(
       {
@@ -108,7 +108,7 @@ test("CommandCodeProvider treats the legacy alpha generate URL as the Provider A
     );
 
     assert.equal(result.error, undefined);
-    assert.equal(capturedUrl, "https://api.commandcode.ai/provider/v1/messages");
+    assert.equal(capturedUrl, "https://api.commandcode.ai/alpha/generate/messages");
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -160,7 +160,7 @@ test("CommandCodeProvider lists every discovered model from the Provider API", a
       models: ["manual/model"],
     }).listModels();
 
-    assert.equal(capturedUrl, "https://api.commandcode.ai/provider/v1/models");
+    assert.equal(capturedUrl, "https://api.commandcode.ai/alpha/generate/models");
     assert.equal(capturedHeaders!.get("Authorization"), "Bearer user_test");
     assert.deepEqual(
       models.map((model) => model.id),
@@ -181,7 +181,7 @@ function commandCodeConfig(): ProviderConfig {
     enabled: true,
     apiKey: "user_test",
     authType: "api_key",
-    baseUrl: "https://api.commandcode.ai/provider/v1",
+    baseUrl: "https://api.commandcode.ai/alpha/generate",
     rateLimit: 40,
     rateWindow: 60,
     maxConcurrency: 5,

@@ -224,8 +224,8 @@ function normalizeProviderModels(
 function normalizeProviderBaseUrl(id: string, baseUrl: string | undefined): string | undefined {
   if (baseUrl === undefined) return undefined;
   const normalized = baseUrl.trim().replace(/\/$/, "");
-  if (id === "commandcode" && normalized === "https://api.commandcode.ai/alpha/generate") {
-    return "https://api.commandcode.ai/provider/v1";
+  if (id === "commandcode" && normalized === "https://api.commandcode.ai/provider/v1") {
+    return "https://api.commandcode.ai/alpha/generate";
   }
   return normalized || undefined;
 }

@@ -6,7 +6,7 @@ import { stripGatewayProviderPrefix } from "../shared/model-prefix.js";
 import { AnthropicMessagesTransport } from "../transports/anthropic.js";
 import { OpenAIChatTransport } from "../transports/openai.js";
 
-export const DEFAULT_COMMANDCODE_BASE_URL = "https://api.commandcode.ai/provider/v1";
+export const DEFAULT_COMMANDCODE_BASE_URL = "https://api.commandcode.ai/alpha/generate";
 
 interface CommandCodeModel {
   id: string;
@@ -119,7 +119,11 @@ function normalizeCommandCodeModel(model: CommandCodeModel): CommandCodeModel | 
 
 function commandCodeBaseUrl(config: ProviderConfig): string {
   const configured = config.baseUrl?.trim().replace(/\/$/, "");
-  if (!configured || configured === "https://api.commandcode.ai/alpha/generate") {
+  if (
+    !configured ||
+    configured === DEFAULT_COMMANDCODE_BASE_URL ||
+    configured === "https://api.commandcode.ai/provider/v1"
+  ) {
     return DEFAULT_COMMANDCODE_BASE_URL;
   }
   return configured;

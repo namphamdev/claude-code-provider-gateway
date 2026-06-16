@@ -225,7 +225,7 @@ export const PROVIDER_DEFAULTS: Record<
   kilocode: { baseUrl: "https://api.kilo.ai/api/openrouter" },
   cline: { baseUrl: "https://api.cline.bot/api/v1" },
   ollama_cloud: { baseUrl: "https://ollama.com" },
-  commandcode: { baseUrl: "https://api.commandcode.ai/provider/v1", models: [] },
+  commandcode: { baseUrl: "https://api.commandcode.ai/alpha/generate", models: [] },
 };
 
 export const PROVIDER_LABELS: Record<BuiltInProviderId, string> = {
